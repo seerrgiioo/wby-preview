@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WBY Notify Preview</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;800&display=swap');
+        body { margin: 0; padding: 0; display: flex; align-items: center; justify-content: center; height: 100vh; background: #121212; font-family: 'Montserrat', sans-serif; }
+        #notif { position: relative; overflow: hidden; box-shadow: 0 8px 32px rgba(0,0,0,0.5); }
+        svg { width: 100%; height: 100%; }
+    </style>
+</head>
+<body>
+    <div id="notif"></div>
+    <script>
+        const ICONS = {
+            Info: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>`,
+            CheckCircle: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>`,
+            AlertTriangle: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>`,
+            XCircle: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="m15 9-6 6"/><path d="m9 9 6 6"/></svg>`,
+        };
+        const TYPE_META = {
+            info:    { accent: '#00d0ff', bg: 'rgba(0,208,255,0.14)',   icon: 'Info' },
+            success: { accent: '#39ff14', bg: 'rgba(57,255,20,0.14)',   icon: 'CheckCircle' },
+            warning: { accent: '#ffea00', bg: 'rgba(255,234,0,0.14)',   icon: 'AlertTriangle' },
+            error:   { accent: '#ff003c', bg: 'rgba(255,0,60,0.14)',    icon: 'XCircle' },
+        };
+
+        const params = new URLSearchParams(window.location.search);
+        const dataStr = params.get('data');
+        if (dataStr) {
+            try {
+                const s = JSON.parse(decodeURIComponent(dataStr));
+                const meta = TYPE_META[s.type] || TYPE_META.info;
+                const accent = s.accentColor || meta.accent;
+                const lBg = s.layout?.bg || { width: 320, height: 75 };
+                const lIcon = s.layout?.icon || { x: 14, y: 14, width: 36, height: 36, rotation: 0 };
+                const lText = s.layout?.text || { x: 62, y: 14, width: 244, height: 50, rotation: 0 };
+
+                let bgStyle = s.backgroundColor;
+                if (s.backgroundImage) {
+                    const alpha = (s.backgroundOverlay || 0) / 100;
+                    bgStyle = `linear-gradient(rgba(0,0,0,${alpha}), rgba(0,0,0,${alpha})), url(${s.backgroundImage})`;
+                }
+
+                let layersHTML = '';
+                if (s.layers) {
+                    s.layers.forEach(l => {
+                        if(l.url) layersHTML += `<img src="${l.url}" style="position:absolute; left:${l.x}px; top:${l.y}px; width:${l.width}px; height:${l.height}px; object-fit:contain; transform:rotate(${l.rotation||0}deg);" />`;
+                    });
+                }
+
+                const el = document.getElementById('notif');
+                el.style.cssText = `background:${bgStyle}; background-size:cover; background-position:center; width:${lBg.width}px; height:${lBg.height}px; border-radius:${s.borderRadius}px; border-left:3px solid ${accent};`;
+                el.innerHTML = `
+                    <div style="position:absolute; inset:0; overflow:hidden; border-radius:${s.borderRadius}px;">${layersHTML}</div>
+                    <div style="position:absolute; left:${lIcon.x}px; top:${lIcon.y}px; width:${lIcon.width}px; height:${lIcon.height}px; transform:rotate(${lIcon.rotation||0}deg); color:${accent}; display:flex; align-items:center; justify-content:center; z-index:2;">${ICONS[meta.icon]}</div>
+                    <div style="position:absolute; left:${lText.x}px; top:${lText.y}px; width:${lText.width}px; height:${lText.height}px; transform:rotate(${lText.rotation||0}deg); z-index:2; overflow:hidden; display:flex; flex-direction:column; justify-content:center;"><div style="color:${s.textColor};font-size:${s.fontSize + 1}px;font-weight:600;line-height:1.3;margin-bottom:3px;">${s.title}</div><div style="color:${s.textColor};font-size:${s.fontSize - 1}px;opacity:0.78;line-height:1.5;">${s.message}</div></div>
+                `;
+            } catch(e) {}
+        }
+    </script>
+</body>
+</html>
